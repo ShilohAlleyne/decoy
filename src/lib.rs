@@ -25,14 +25,18 @@ pub fn go() -> InquireResult<()> {
     };
 
     //  --- Super basic arg parsing ---
-    let args: Vec<String> = env::args().collect();
+    let args: Vec<String> = env::args()
+        .skip(1) // Skip the binary name
+        .map(|arg| arg.trim().to_owned())
+        .collect();
+
     if args.is_empty() {
         return Err(InquireError::InvalidConfiguration(
             "You must supply an argument: use --help for argument list".to_string(),
         ));
     }
 
-    let mode = args[1].trim();
+    let mode = args[0].trim();
 
     // Run a prompt
     match mode {
@@ -40,17 +44,22 @@ pub fn go() -> InquireResult<()> {
             // Create new note
             let (path, front_matter) =
                 prompts::denote(&opts.note_dir, defualt_ft, keywords)?;
+            
             // Write new note with front matter
-            file_ops::write_new_note(&path, front_matter)?;
+            file_ops::write_new_note(&path, front_matter, opts.notes_filetype)?;
+            
             // Open editor
             file_ops::open_with_editor(&path)?;
+            
             Ok(())
         }
         "--find" => {
             // Find note
             let path = prompts::search_notes(&notes, keywords)?;
+            
             // Open editor
             file_ops::open_with_editor(&path)?;
+            
             Ok(())
         }
         "--rename" => {
@@ -60,12 +69,14 @@ pub fn go() -> InquireResult<()> {
                 .extension()
                 .and_then(|ext| ext.to_str().map(|s| format!(".{}", s)))
                 .ok_or_else(|| InquireError::InvalidConfiguration("Missing or invalid file extension".to_string()))?;
+            
             // Create new note
             let (new_path, _) = prompts::denote(&opts.note_dir, &ext, keywords)?;
             let new_name = new_path
                 .file_name()
                 .and_then(|name| name.to_str())
                 .ok_or(InquireError::InvalidConfiguration("Invalid filename".to_string()))?;
+            
             // Rename file
             file_ops::rename_file(&mut old_path, new_name)?;
             println!(
@@ -74,7 +85,22 @@ pub fn go() -> InquireResult<()> {
                 old_path,
                 new_name.italic().magenta(),
             );
+            
             Ok(())
+        }
+        "--config" => {
+            // open config
+            let opts_path = options::get_opts_path();
+            if opts_path.exists() {
+                file_ops::open_with_editor(&opts_path)?;
+                
+                Ok(())
+            } else {
+                options::generate_default_opts()?;
+                file_ops::open_with_editor(&opts_path)?;
+
+                Ok(())
+            }
         }
         _ => Err(InquireError::InvalidConfiguration(
             "Incorrect Flag used".to_string(),

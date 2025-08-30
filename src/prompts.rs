@@ -127,7 +127,7 @@ pub(crate) fn denote(
         .unwrap();
 
     let keywords: String = Text::new("New file KEYWORDS:")
-        .with_help_message("Each tag must be space separated, '-' and '_' are not allowed")
+        .with_help_message("↑↓ to move, <TAB> to autocomplete, type to filter, Tags are space separated and cannot contain '_' or '-'")
         .with_autocomplete(KeywordCompleter::new(keywords))
         .with_validator(kw_validator)
         .prompt()

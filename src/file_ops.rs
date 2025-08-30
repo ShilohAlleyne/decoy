@@ -5,11 +5,13 @@ use serde::{Deserialize, Serialize};
 use std::{
     env,
     fmt::{self, Display},
-    fs::{self, File, OpenOptions},
+    fs::{self, create_dir_all, File, OpenOptions},
     io::{Error, Write},
     path::{Path, PathBuf},
     process::Command,
 };
+
+use crate::options;
 
 // --- Notes ---
 #[derive(Debug, Clone)]
@@ -55,6 +57,19 @@ pub(crate) struct FrontMatter {
     pub date: String,
     pub file_tags: Vec<String>,
     pub indentifier: String,
+}
+
+impl FrontMatter {
+    pub fn to_org_front_matter(&self) -> String {
+        let mut lines = vec![];
+
+        lines.push(format!("#+TITLE: {}", self.title));
+        lines.push(format!("#+DATE: {}", self.date));
+        lines.push(format!("#+FILETAGS: {}", self.file_tags.join(" ")));
+        lines.push(format!("#+IDENTIFIER: {}", self.indentifier));
+
+        lines.join("\n")
+    }
 }
 
 // --- Load things ---
@@ -108,16 +123,32 @@ pub(crate) fn search(notes: &[Note], keywords: Vec<String>) -> Vec<Note> {
     }
 }
 
-pub(crate) fn write_new_note(path: &Path, frontmatter: FrontMatter) -> std::io::Result<()> {
-    let yaml = serde_yaml::to_string(&frontmatter).map_err(Error::other)?;
+pub(crate) fn write_new_note(
+    path: &Path,
+    frontmatter: FrontMatter,
+    ext: options::FileType,
+) -> std::io::Result<()> {
+    let fm = match ext {
+        options::FileType::Org => frontmatter.to_org_front_matter().into_bytes(),
+        _ => format!(
+            "---\n{}---\n",
+            serde_yaml::to_string(&frontmatter).map_err(Error::other)?
+        )
+        .into_bytes(),
+    };
+
+    // Ensure parent directory exists
+    if let Some(parent) = path.parent() {
+        create_dir_all(parent)?;
+    }
 
     let mut file: File = OpenOptions::new()
         .write(true)
         .create(true)
         .truncate(true)
-        .open(&path)?;
+        .open(path)?;
 
-    file.write_all(format!("---\n{}---\n", yaml).as_bytes())?;
+    file.write_all(&fm)?;
 
     Ok(())
 }
