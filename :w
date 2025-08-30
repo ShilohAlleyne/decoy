@@ -1,0 +1,3 @@
+                .file_stem()
+                .and_then(|stem| stem.to_str())
+                .ok_or(InquireError::InvalidConfiguration())?;
