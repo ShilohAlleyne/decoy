@@ -1,4 +1,5 @@
 use chrono::Local;
+use colored::Colorize;
 use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use inquire::{
     error::InquireResult,
@@ -105,6 +106,26 @@ struct Note(PathBuf);
 
 impl Display for Note {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let stem: Option<&str> = self.0.file_name().and_then(|stem| stem.to_str());
+
+        if let Some(filename) = stem {
+            let (ident, tail) = filename.split_at(15);
+            if let Some((name, raw_kws)) = tail.split_once("__") {
+                // get induvidual keywords
+                let kws = raw_kws
+                    .split("_")
+                    .map(|k| format!("{}", k.yellow()))
+                    .join("_");
+
+                let fformat = &kws
+                    .split_once(".")
+                    .map(|(_, ext)| format!(".{}", ext.clear()))
+                    .unwrap_or_default();
+
+                    return writeln!(f, "{}{}__{}{}", ident.cyan(), name, kws, fformat);
+            };
+        }
+
         writeln!(f, "{:?}", self.0)
     }
 }
