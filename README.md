@@ -1,6 +1,6 @@
 # Side A - Decoy
 
-[DecoyPic]
+<img width="316" height="316" alt="image" src="https://github.com/user-attachments/assets/878b0f60-6c7f-4f7a-8788-8e79bd355fed" />
 
 Decoy (named after the Miles Davis album on my desk at time) is a minimal cli port of the legendary Protesilaos's [Denote package](https://protesilaos.com/emacs/denote) from from Emacs.
 
@@ -37,12 +37,23 @@ The Decoy CLI has 4 arguments currently:
 
 For `--new` and `--rename`, Inputting tags tags supports basic auto completion, you can with select a tag from tag list bellow the prompt, or input the start of a tag and press `<TAB>` to auto-complete.
 
-**Creating a note**:
+**Creating a note**
+
+Markdown with yaml frontmatter: 
+
+![Decoy - New MD](https://github.com/user-attachments/assets/c1b14517-cd1b-4e53-95e1-34f57efcf400)
+
+Org with whatever Org has as frontmatter:
+
+![Decoy - New Org](https://github.com/user-attachments/assets/6ae1efbe-d980-48e4-831f-537a0a0bb224)
 
 **Finding a note:**
 
+![Decoy - Find](https://github.com/user-attachments/assets/1252266c-11fc-46f9-89f4-bd94d2c3a3d1)
+
 **Renaming a note:**
 
+![Decoy - Rename](https://github.com/user-attachments/assets/d9923a13-0deb-46df-a0b5-de66be2e99e5)
 
 ## Freaky Deaky - Configuration
 
