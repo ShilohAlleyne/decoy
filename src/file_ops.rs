@@ -90,6 +90,7 @@ pub(crate) fn load_key_words(notes: &[Note]) -> Vec<String> {
         .filter_map(|p| p.0.file_stem()?.to_str())
         .flat_map(|name| name.split("__").skip(1).flat_map(|seg| seg.split('_')))
         .map(|tag| tag.to_string())
+        .filter(|tag| !tag.is_empty())
         .unique()
         .collect()
 }
