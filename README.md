@@ -25,6 +25,8 @@ Wheeze:
 
 The Denote System is file type agnostic, can an even be used on non text file types.
 
+[Protesilaos naturally has a great introduction to denote video](https://youtu.be/mLzFJcLpDFI?si=2SBVVglRCdJYVuCP)
+
 ## Code M.D. - The Decoy CLI
 
 The Decoy CLI has 4 arguments currently:
