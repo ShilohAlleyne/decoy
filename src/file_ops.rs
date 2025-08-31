@@ -19,35 +19,49 @@ pub(crate) struct Note(pub PathBuf);
 
 impl Display for Note {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let stem: Option<&str> = self.0.file_name().and_then(|s| s.to_str());
+        let stem = self.0.file_name().and_then(|s| s.to_str());
 
         if let Some(filename) = stem {
-            if filename.len() < 15 {
-                return writeln!(f, "{:?}", self.0);
+            let (ident_opt, tail) = filename.split_once("--").map_or((None, filename), |(id, t)| (Some(id), t));
+            let (name, raw_kws) = tail.split_once("__").unwrap_or((tail, ""));
+
+            let (kws_part, ext_part) = raw_kws
+                .split_once('.')
+                .map(|(kws, ext)| (kws, Some(ext)))
+                .unwrap_or((raw_kws, None));
+
+            let styled_kws = kws_part
+                .split('_')
+                .filter(|k| !k.is_empty())
+                .map(|k| format!("{}", k.yellow()))
+                .collect::<Vec<_>>()
+                .join("_");
+
+            let styled_ext = ext_part.map(|ext| format!(".{}", ext.clear())).unwrap_or_default();
+            let separator = if !styled_kws.is_empty() { "__" } else { "" };
+
+            match ident_opt {
+                Some(ident) => writeln!(
+                    f,
+                    "{}--{}{}{}{}",
+                    ident.cyan(),
+                    name,
+                    separator,
+                    styled_kws,
+                    styled_ext
+                ),
+                None => writeln!(
+                    f,
+                    "{}{}{}{}",
+                    name,
+                    separator,
+                    styled_kws,
+                    styled_ext
+                ),
             }
-
-            let (ident, tail) = filename.split_at(15);
-
-            if let Some((name, raw_kws)) = tail.split_once("__") {
-                let kws = raw_kws
-                    .split_once('.')
-                    .map(|(fn_name, _)| fn_name)
-                    .unwrap_or(raw_kws)
-                    .split('_')
-                    .map(|k| format!("{}", k.yellow()))
-                    .collect::<Vec<_>>()
-                    .join("_");
-
-                let fformat = raw_kws
-                    .split_once('.')
-                    .map(|(_, ext)| format!(".{}", ext.clear()))
-                    .unwrap_or_default();
-
-                return writeln!(f, "{}{}__{}{}", ident.cyan(), name, kws, fformat);
-            }
+        } else {
+            writeln!(f, "{:?}", self.0)
         }
-
-        writeln!(f, "{:?}", self.0)
     }
 }
 
