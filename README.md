@@ -33,7 +33,7 @@ The Decoy CLI has 4 arguments currently:
 - `--new`    <- Create a new a note file and open with `$EDITOR`, the default note type is markdown and default note directory is `home/notes`
 - `--find`   <- Filter notes by tags and open with `$EDITOR`
 - `--rename` <- Rename a note using the Denote system
-- `--config` <- Opens the config JSON, where you can change the default note file type and note directory
+- `--config` <- Opens the config TOML, where you can change the default note file type and note directory
 
 For `--new` and `--rename`, Inputting tags tags supports basic auto completion, you can with select a tag from tag list bellow the prompt, or input the start of a tag and press `<TAB>` to auto-complete.
 
@@ -57,7 +57,7 @@ Org with whatever Org has as frontmatter:
 
 ## Freaky Deaky - Configuration
 
-Calling `--config`, will open the config JSON file with your default editor. Here you can set your default notes directory and filetype (markdown, txt and org).
+Calling `--config`, will open the config TOML file with your default editor. Here you can set your default notes directory and filetype (markdown, txt and org).
 
 # Side B - Whats to come
 
