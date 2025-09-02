@@ -35,7 +35,7 @@ pub(crate) enum FileType {
 // --- Load things ---
 pub(crate) fn get_opts_path() -> PathBuf {
     let home: String = env::var("HOME").unwrap_or_else(|_| ".".to_string());
-    let opts_path: PathBuf = PathBuf::from(format!("{}/.decoy/opts.json", home));
+    let opts_path: PathBuf = PathBuf::from(format!("{}/.decoy/opts.toml", home));
 
     opts_path
 }
@@ -43,15 +43,14 @@ pub(crate) fn get_opts_path() -> PathBuf {
 pub(crate) fn load_opts() -> Result<Opts, InquireError> {
     let opts_path: PathBuf = get_opts_path();
 
-    
     if opts_path.exists() {
         // Read file content
-        let json_opts = fs::read_to_string(&opts_path).unwrap_or_default();
-        let opts: Opts = serde_json::from_str(&json_opts).unwrap_or_default();
+        let opts = fs::read_to_string(&opts_path).unwrap_or_default();
+        let opts: Opts = toml::from_str(&opts).unwrap_or_default();
 
         return Ok(opts);
     }
-        
+
     // Use the default opts if there is no opt file
     Ok(Opts::default())
 }
@@ -71,9 +70,10 @@ pub(crate) fn generate_default_opts() -> std::io::Result<()> {
             .truncate(true)
             .open(&opts_path)?;
 
-        let json = serde_json::to_string_pretty(&Opts::default())?;
+        let toml: String = toml::to_string_pretty(&Opts::default())
+            .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidData, "Invalid Options"))?;
 
-        file.write_all(json.as_bytes())?;
+        file.write_all(toml.as_bytes())?;
     }
 
     Ok(())
