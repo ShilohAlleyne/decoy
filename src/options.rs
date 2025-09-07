@@ -25,11 +25,12 @@ impl Default for Opts {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy)]
+#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum FileType {
     Markdown,
     Text,
     Org,
+    Typst
 }
 
 // --- Load things ---

@@ -21,7 +21,8 @@ pub fn go() -> InquireResult<()> {
     let defualt_ft = match opts.notes_filetype {
         options::FileType::Markdown => ".md",
         options::FileType::Text => ".txt",
-        options::FileType::Org => ".org"
+        options::FileType::Org => ".org",
+        options::FileType::Typst => ".typ",
     };
 
     //  --- Super basic arg parsing ---
@@ -42,24 +43,23 @@ pub fn go() -> InquireResult<()> {
     match mode {
         "--new" => {
             // Create new note
-            let (path, front_matter) =
-                prompts::denote(&opts.note_dir, defualt_ft, keywords)?;
-            
+            let (path, front_matter) = prompts::denote(&opts.note_dir, defualt_ft, keywords)?;
+
             // Write new note with front matter
             file_ops::write_new_note(&path, front_matter, opts.notes_filetype)?;
-            
+
             // Open editor
             file_ops::open_with_editor(&path)?;
-            
+
             Ok(())
         }
         "--find" => {
             // Find note
             let path = prompts::search_notes(&notes, keywords)?;
-            
+
             // Open editor
             file_ops::open_with_editor(&path)?;
-            
+
             Ok(())
         }
         "--rename" => {
@@ -68,15 +68,18 @@ pub fn go() -> InquireResult<()> {
             let ext = old_path
                 .extension()
                 .and_then(|ext| ext.to_str().map(|s| format!(".{}", s)))
-                .ok_or_else(|| InquireError::InvalidConfiguration("Missing or invalid file extension".to_string()))?;
-            
+                .ok_or_else(|| {
+                    InquireError::InvalidConfiguration(
+                        "Missing or invalid file extension".to_string(),
+                    )
+                })?;
+
             // Create new note
             let (new_path, _) = prompts::denote(&opts.note_dir, &ext, keywords)?;
-            let new_name = new_path
-                .file_name()
-                .and_then(|name| name.to_str())
-                .ok_or(InquireError::InvalidConfiguration("Invalid filename".to_string()))?;
-            
+            let new_name = new_path.file_name().and_then(|name| name.to_str()).ok_or(
+                InquireError::InvalidConfiguration("Invalid filename".to_string()),
+            )?;
+
             // Rename file
             file_ops::rename_file(&mut old_path, new_name)?;
             println!(
@@ -85,7 +88,7 @@ pub fn go() -> InquireResult<()> {
                 old_path,
                 new_name.italic().magenta(),
             );
-            
+
             Ok(())
         }
         "--config" => {
@@ -93,7 +96,7 @@ pub fn go() -> InquireResult<()> {
             let opts_path = options::get_opts_path();
             if opts_path.exists() {
                 file_ops::open_with_editor(&opts_path)?;
-                
+
                 Ok(())
             } else {
                 options::generate_default_opts()?;

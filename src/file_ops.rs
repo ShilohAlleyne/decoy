@@ -163,7 +163,10 @@ pub(crate) fn write_new_note(
         .truncate(true)
         .open(path)?;
 
-    file.write_all(&fm)?;
+    // Typst files have no frontmatter
+    if !(ext == options::FileType::Typst) {
+        file.write_all(&fm)?;
+    }
 
     Ok(())
 }
