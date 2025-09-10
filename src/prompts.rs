@@ -3,7 +3,7 @@ use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use inquire::{
     formatter::{MultiOptionFormatter, OptionFormatter},
     validator::Validation,
-    Autocomplete, InquireError, MultiSelect, Select, Text,
+    Autocomplete, InquireError, MultiSelect, Select, Text, DateSelect,
 };
 use itertools::Itertools;
 use std::path::{Path, PathBuf};
@@ -195,10 +195,43 @@ pub(crate) fn search_notes(
         .prompt()
         .unwrap();
 
-    let note = Select::new("Select note:", file_ops::search(notes, kws))
+    let note = Select::new("Select note:", file_ops::search_by_kws(notes, kws))
         .with_formatter(note_formatter)
         .prompt()
         .unwrap();
 
     Ok(note.0)
+}
+
+pub(crate) fn search_by_date(notes: &[file_ops::Note]) -> Result<PathBuf, InquireError> {
+    let note_formatter: OptionFormatter<file_ops::Note> = &|a| {
+        let formatted = a
+            .value
+            .0
+            .file_stem()
+            .and_then(|os_str| os_str.to_str())
+            .map(|s| {
+                let truncated = s.chars().take(30).collect::<String>();
+                truncated.to_string()
+            })
+            .unwrap_or_else(|| "<invalid>".to_string());
+
+        formatted
+    };
+
+    let date = DateSelect::new("Selected date")
+        .with_default(Local::now().date_naive())
+        .with_week_start(chrono::Weekday::Mon)
+        .with_help_message("Use the arrow keys to select date")
+        .prompt()
+        .unwrap();
+
+    
+    let note = Select::new("Select note:", file_ops::search_by_date(notes, date))
+        .with_formatter(note_formatter)
+        .prompt()
+        .unwrap();
+
+    Ok(note.0)
+
 }

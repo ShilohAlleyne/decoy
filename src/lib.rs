@@ -62,6 +62,7 @@ pub fn go() -> InquireResult<()> {
 
             Ok(())
         }
+        // Generate denote for already exisiting file
         "--rename" => {
             // Search old file
             let mut old_path = prompts::search_notes(&notes, keywords.clone())?;
@@ -88,6 +89,15 @@ pub fn go() -> InquireResult<()> {
                 old_path,
                 new_name.italic().magenta(),
             );
+
+            Ok(())
+        }
+        "--date" => {
+            // Search old file
+            let path = prompts::search_by_date(&notes)?;
+
+            // Open editor
+            file_ops::open_with_editor(&path)?;
 
             Ok(())
         }

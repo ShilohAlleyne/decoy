@@ -1,3 +1,4 @@
+use chrono::{NaiveDate, NaiveDateTime};
 use colored::Colorize;
 use inquire::InquireError;
 use itertools::Itertools;
@@ -65,6 +66,18 @@ impl Display for Note {
     }
 }
 
+impl Note {
+    pub(crate) fn date(&self) -> Option<NaiveDate> {
+        let filename = self.0.file_stem()?.to_str()?;
+        let (ident, _) = filename.split_once("--")?;
+
+        NaiveDateTime::parse_from_str(ident, "%Y%m%dT%H%M%S")
+            .ok()
+            .map(|dt| dt.date())
+    }
+}
+
+
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct FrontMatter {
     pub title: String,
@@ -110,7 +123,7 @@ pub(crate) fn load_key_words(notes: &[Note]) -> Vec<String> {
 }
 
 // --- File manipulation ---
-pub(crate) fn search(notes: &[Note], keywords: Vec<String>) -> Vec<Note> {
+pub(crate) fn search_by_kws(notes: &[Note], keywords: Vec<String>) -> Vec<Note> {
     if keywords.is_empty() {
         notes.to_vec()
     } else {
@@ -136,6 +149,19 @@ pub(crate) fn search(notes: &[Note], keywords: Vec<String>) -> Vec<Note> {
             .cloned()
             .collect()
     }
+}
+
+
+pub(crate) fn search_by_date(notes: &[Note], date: NaiveDate) -> Vec<Note> {
+    notes.iter()
+        .filter(|note| {
+            match note.date() {
+                Some(note_date) => note_date == date,
+                None => false,
+            }
+        })
+        .cloned()
+        .collect()
 }
 
 pub(crate) fn write_new_note(
