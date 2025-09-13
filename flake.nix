@@ -30,6 +30,7 @@
                 pkgs-stable.cargo
                 pkgs-stable.rustup
                 pkgs-stable.rust-analyzer
+                pkgs-stable.zathura
             ];
             shellHook = ''
                 export PATH="${pkgs-stable.rust-analyzer}/bin:$PATH"

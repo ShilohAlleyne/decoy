@@ -1,17 +1,18 @@
+use std::{env, fs::{self, File, OpenOptions}, io::Write, path::PathBuf};
 use inquire::InquireError;
 use serde::{Deserialize, Serialize};
-use std::{
-    env,
-    fs::{self, File, OpenOptions},
-    io::Write,
-    path::PathBuf,
-};
+
+use crate::{files::types, options::editor};
+
 
 // --- Basic CLI opts ---
 #[derive(Debug, Serialize, Deserialize)]
 pub(crate) struct Opts {
+    pub opts_path: PathBuf,
     pub note_dir: PathBuf,
-    pub notes_filetype: FileType,
+    pub notes_filetype: types::FileType,
+    #[serde(default = "editor::Editor::default")]
+    pub editor: editor::Editor,
 }
 
 impl Default for Opts {
@@ -19,45 +20,24 @@ impl Default for Opts {
         // Notes are always in either home/notes or somewhere else
         let home = env::var("HOME").unwrap_or_else(|_| ".".to_string());
         Opts {
+            opts_path: get_path(),
             note_dir: PathBuf::from(format!("{}/notes/", home)),
-            notes_filetype: FileType::Markdown,
+            notes_filetype: types::FileType::Markdown,
+            editor: editor::Editor::default(),
         }
     }
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum FileType {
-    Markdown,
-    Text,
-    Org,
-    Typst
-}
-
 // --- Load things ---
-pub(crate) fn get_opts_path() -> PathBuf {
+fn get_path() -> PathBuf {
     let home: String = env::var("HOME").unwrap_or_else(|_| ".".to_string());
     let opts_path: PathBuf = PathBuf::from(format!("{}/.decoy/opts.toml", home));
 
     opts_path
 }
 
-pub(crate) fn load_opts() -> Result<Opts, InquireError> {
-    let opts_path: PathBuf = get_opts_path();
-
-    if opts_path.exists() {
-        // Read file content
-        let opts = fs::read_to_string(&opts_path).unwrap_or_default();
-        let opts: Opts = toml::from_str(&opts).unwrap_or_default();
-
-        return Ok(opts);
-    }
-
-    // Use the default opts if there is no opt file
-    Ok(Opts::default())
-}
-
-pub(crate) fn generate_default_opts() -> std::io::Result<()> {
-    let opts_path = get_opts_path();
+fn generate_default_opts_file() -> std::io::Result<()> {
+    let opts_path = get_path();
 
     if !opts_path.exists() {
         // create the opts dir
@@ -78,4 +58,20 @@ pub(crate) fn generate_default_opts() -> std::io::Result<()> {
     }
 
     Ok(())
+}
+
+pub fn load() -> Result<Opts, InquireError> {
+    let opts_path: PathBuf = get_path();
+
+    if opts_path.exists() {
+        // Read file content
+        let opts = fs::read_to_string(&opts_path).unwrap_or_default();
+        let opts: Opts = toml::from_str(&opts).unwrap_or_default();
+
+        return Ok(opts);
+    }
+
+    // Use the default opts if there is no opt file
+    generate_default_opts_file()?;
+    Ok(Opts::default())
 }

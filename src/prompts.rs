@@ -3,12 +3,15 @@ use fuzzy_matcher::{skim::SkimMatcherV2, FuzzyMatcher};
 use inquire::{
     formatter::{MultiOptionFormatter, OptionFormatter},
     validator::Validation,
-    Autocomplete, InquireError, MultiSelect, Select, Text, DateSelect,
+    Autocomplete, DateSelect, InquireError, MultiSelect, Select, Text,
 };
 use itertools::Itertools;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 
-use crate::file_ops;
+use crate::{
+    ctx,
+    files::{frontmatter, note},
+};
 
 // --- Auto complete ---
 #[derive(Clone, Default)]
@@ -85,11 +88,8 @@ fn option_split(input: &str) -> Option<()> {
 }
 
 // --- Prompts ---
-pub(crate) fn denote(
-    note_dir: &Path,
-    ext: &str,
-    keywords: Vec<String>,
-) -> Result<(PathBuf, file_ops::FrontMatter), InquireError> {
+// Generate note with denote formmatter
+pub(crate) fn denote(ctx: &ctx::Ctx) -> Result<(PathBuf, frontmatter::FrontMatter), InquireError> {
     // Input validators
     let title_validator = |input: &str| match input.is_empty() {
         true => Ok(Validation::Invalid("You must provide a title".into())),
@@ -128,12 +128,12 @@ pub(crate) fn denote(
 
     let keywords: String = Text::new("New file KEYWORDS:")
         .with_help_message("↑↓ to move, <TAB> to autocomplete, type to filter, Tags are space separated and cannot contain '_' or '-'")
-        .with_autocomplete(KeywordCompleter::new(keywords))
+        .with_autocomplete(KeywordCompleter::new(ctx.keywords.clone()))
         .with_validator(kw_validator)
         .prompt()
         .unwrap();
 
-    let fmt = file_ops::FrontMatter {
+    let fmt = frontmatter::FrontMatter {
         title: title.clone(),
         date: gen_date(),
         file_tags: keywords
@@ -149,20 +149,18 @@ pub(crate) fn denote(
         identifier,
         format_title(title),
         format_keywords(keywords),
-        ext
+        &ctx.opts.notes_filetype.as_ref()
     );
 
     // Create the new file
-    let mut path = note_dir.to_path_buf();
+    let mut path = ctx.opts.note_dir.to_path_buf();
     path.push(&note);
 
     Ok((path, fmt))
 }
 
-pub(crate) fn search_notes(
-    notes: &[file_ops::Note],
-    keywords: Vec<String>,
-) -> Result<PathBuf, InquireError> {
+// Search notes by keywords
+pub(crate) fn search_notes_by_keywords(ctx: &ctx::Ctx) -> Result<PathBuf, InquireError> {
     // Generate formatters
     let kw_formatter: MultiOptionFormatter<String> = &|a| {
         format!(
@@ -174,28 +172,25 @@ pub(crate) fn search_notes(
         )
     };
 
-    let note_formatter: OptionFormatter<file_ops::Note> = &|a| {
+    let note_formatter: OptionFormatter<note::Note> = &|a| {
         let formatted = a
             .value
             .0
             .file_stem()
             .and_then(|os_str| os_str.to_str())
-            .map(|s| {
-                let truncated = s.chars().take(30).collect::<String>();
-                truncated.to_string()
-            })
+            .map(|s| s.to_string())
             .unwrap_or_else(|| "<invalid>".to_string());
 
         formatted
     };
 
     // Prompt
-    let kws = MultiSelect::new("Select relavent keywords:", keywords)
+    let kws = MultiSelect::new("Select relavent keywords:", ctx.keywords.clone())
         .with_formatter(kw_formatter)
         .prompt()
         .unwrap();
 
-    let note = Select::new("Select note:", file_ops::search_by_kws(notes, kws))
+    let note = Select::new("Select note:", note::search_by_keywords(&ctx.notes, kws))
         .with_formatter(note_formatter)
         .prompt()
         .unwrap();
@@ -203,17 +198,14 @@ pub(crate) fn search_notes(
     Ok(note.0)
 }
 
-pub(crate) fn search_by_date(notes: &[file_ops::Note]) -> Result<PathBuf, InquireError> {
-    let note_formatter: OptionFormatter<file_ops::Note> = &|a| {
+pub(crate) fn search_notes_by_date(ctx: &ctx::Ctx) -> Result<PathBuf, InquireError> {
+    let note_formatter: OptionFormatter<note::Note> = &|a| {
         let formatted = a
             .value
             .0
             .file_stem()
             .and_then(|os_str| os_str.to_str())
-            .map(|s| {
-                let truncated = s.chars().take(30).collect::<String>();
-                truncated.to_string()
-            })
+            .map(|s| s.to_string())
             .unwrap_or_else(|| "<invalid>".to_string());
 
         formatted
@@ -226,12 +218,10 @@ pub(crate) fn search_by_date(notes: &[file_ops::Note]) -> Result<PathBuf, Inquir
         .prompt()
         .unwrap();
 
-    
-    let note = Select::new("Select note:", file_ops::search_by_date(notes, date))
+    let note = Select::new("Select note:", note::search_by_date(&ctx.notes, date))
         .with_formatter(note_formatter)
         .prompt()
         .unwrap();
 
     Ok(note.0)
-
 }

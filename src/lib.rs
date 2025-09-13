@@ -6,24 +6,18 @@ use inquire::{
 };
 use std::env;
 
-pub mod file_ops;
-pub mod options;
-pub mod prompts;
+mod prompts;
+mod ctx;
+mod files;
+mod options;
+
 
 pub fn go() -> InquireResult<()> {
     // Set styling
     inquire::set_global_render_config(get_render_config());
 
     // Load deps
-    let opts = options::load_opts()?;
-    let notes = file_ops::load_notes(opts.note_dir.as_path())?;
-    let keywords = file_ops::load_key_words(&notes);
-    let defualt_ft = match opts.notes_filetype {
-        options::FileType::Markdown => ".md",
-        options::FileType::Text => ".txt",
-        options::FileType::Org => ".org",
-        options::FileType::Typst => ".typ",
-    };
+    let ctx = ctx::Ctx::new()?;
 
     //  --- Super basic arg parsing ---
     let args: Vec<String> = env::args()
@@ -43,46 +37,38 @@ pub fn go() -> InquireResult<()> {
     match mode {
         "--new" => {
             // Create new note
-            let (path, front_matter) = prompts::denote(&opts.note_dir, defualt_ft, keywords)?;
+            let (path, front_matter) = prompts::denote(&ctx)?;
 
             // Write new note with front matter
-            file_ops::write_new_note(&path, front_matter, opts.notes_filetype)?;
+            files::operations::write_new_note(&ctx, &path, front_matter)?;
 
             // Open editor
-            file_ops::open_with_editor(&path)?;
+            files::operations::open_with(&ctx, &path)?;
 
             Ok(())
         }
         "--find" => {
             // Find note
-            let path = prompts::search_notes(&notes, keywords)?;
+            let path = prompts::search_notes_by_keywords(&ctx)?;
 
             // Open editor
-            file_ops::open_with_editor(&path)?;
+            files::operations::open_with(&ctx, &path)?;
 
             Ok(())
-        }
+}
         // Generate denote for already exisiting file
         "--rename" => {
             // Search old file
-            let mut old_path = prompts::search_notes(&notes, keywords.clone())?;
-            let ext = old_path
-                .extension()
-                .and_then(|ext| ext.to_str().map(|s| format!(".{}", s)))
-                .ok_or_else(|| {
-                    InquireError::InvalidConfiguration(
-                        "Missing or invalid file extension".to_string(),
-                    )
-                })?;
+            let old_path = prompts::search_notes_by_keywords(&ctx)?;
 
             // Create new note
-            let (new_path, _) = prompts::denote(&opts.note_dir, &ext, keywords)?;
-            let new_name = new_path.file_name().and_then(|name| name.to_str()).ok_or(
+            let (new_path, _) = prompts::denote(&ctx)?;
+            let new_name = new_path.file_stem().and_then(|name| name.to_str()).ok_or(
                 InquireError::InvalidConfiguration("Invalid filename".to_string()),
             )?;
 
             // Rename file
-            file_ops::rename_file(&mut old_path, new_name)?;
+            files::operations::rename_file(&old_path, new_name)?;
             println!(
                 "{} Renamed file: {:?} -> {}",
                 ">".magenta(),
@@ -94,26 +80,18 @@ pub fn go() -> InquireResult<()> {
         }
         "--date" => {
             // Search old file
-            let path = prompts::search_by_date(&notes)?;
+            let path = prompts::search_notes_by_date(&ctx)?;
 
             // Open editor
-            file_ops::open_with_editor(&path)?;
+            files::operations::open_with(&ctx, &path)?;
 
             Ok(())
         }
         "--config" => {
             // open config
-            let opts_path = options::get_opts_path();
-            if opts_path.exists() {
-                file_ops::open_with_editor(&opts_path)?;
+            files::operations::open_with(&ctx, &ctx.opts.opts_path)?;
 
-                Ok(())
-            } else {
-                options::generate_default_opts()?;
-                file_ops::open_with_editor(&opts_path)?;
-
-                Ok(())
-            }
+            Ok(())
         }
         _ => Err(InquireError::InvalidConfiguration(
             "Incorrect Flag used".to_string(),
